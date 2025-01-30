@@ -35,7 +35,7 @@ from urllib.parse import quote
 
 class DMLManager():
     """
-    # Manejador de transacciones con una base de datos
+    # Manejador de transacciones con PostgreSQL
     Este módulo realiza las transacciones de `CREATE`, `SELECT`, `UPDATE` y
     `DELETE` así como algunos otros métodos comunes útiles para la gestión del CRUD
     en una aplicación.
