@@ -133,6 +133,7 @@ celerybeat.pid
 env/
 venv/
 ENV/
+_env/
 env.bak/
 venv.bak/
 
@@ -169,3 +170,6 @@ cython_debug/
 
 # PyPI configuration file
 .pypirc
+
+# Jupyter notebooks
+*.ipynb
