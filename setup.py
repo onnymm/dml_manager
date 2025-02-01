@@ -3,7 +3,7 @@ from setuptools import setup, find_packages
 setup(
     # Library name and version
     name="dml_manager",
-    version="0.1.0",
+    version="0.1.1",
     
     # Dependencies
     install_requires=[

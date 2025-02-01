@@ -115,7 +115,7 @@ class DMLManager():
         self,
         db_credentials: Literal['env'] | DBCredentials | str,
         base: DeclarativeBaseClass,
-        data_output: OutputOptions = 'dict',
+        data_output: OutputOptions | None = None,
         unique_identifier_field: str = 'id',
     ) -> None:
 
@@ -445,7 +445,7 @@ class DMLManager():
         data = pd.DataFrame(response.fetchall())
 
         # Retorno en formato de salida configurado
-        return self._build_output(data, output_format)
+        return self._build_output(data, table_fields, output_format)
 
     def get_value(
         self,
@@ -746,7 +746,7 @@ class DMLManager():
         data = pd.DataFrame(response.fetchall())
 
         # Retorno en formato de salida configurado
-        return self._build_output(data, output_format)
+        return self._build_output(data, table_fields, output_format)
 
     def search_count(
         self,
@@ -1135,21 +1135,27 @@ class DMLManager():
     def _build_output(
         self,
         response: list[dict[str, Any]],
+        fields: list[str],
         default_output: OutputOptions | None = None,
     ) -> pd.DataFrame | list[dict[str, Any]]:
 
-        # Si no se especificó formato de salida en la función...
-        if not default_output:
-            # Formato de salida en DataFrame
-            if self._default_output == 'dataframe':
-                return pd.DataFrame(response)
+        # Obtención de los nombres de columna excluyendo el nombre de la tabla
+        fields = [ str(i).split(".")[1] for i in fields ]
 
-        # Si el formato de salida por fecto es DataFrame...
-        if self._default_output == 'dataframe':
-                return pd.DataFrame(response)
+        # Si el formato de salida por defecto es DataFrame...
+        if self._default_output:
+            if self._default_output == 'dataframe':
+                return pd.DataFrame(response, columns= fields)
+            else:
+                return response.to_dict('records')
+
+
+        # Si no se especificó formato de salida en la función...
+        if default_output == 'dataframe':
+            return pd.DataFrame(response, columns= fields)
 
         # Retorno de información en lista de diccionarios
-        return response
+        return response.to_dict('records')
 
     def _id_field(
         self,
