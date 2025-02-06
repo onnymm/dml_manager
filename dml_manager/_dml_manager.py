@@ -1197,7 +1197,7 @@ class DMLManager():
                                 .astype('string')
                                 # Filtro por tipos de dato no serializables
                                 .pipe(
-                                    lambda s: s[s.isin(['object', 'datatime64[ns]'])]
+                                    lambda s: s[s.isin(['object', 'datetime64[ns]'])]
                                 )
                                 # Obtención de los nombres de columnas desde el índice
                                 .index

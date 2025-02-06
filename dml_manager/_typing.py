@@ -84,4 +84,4 @@ class DBCredentials(TypedDict):
 OutputOptions = Literal['dataframe', 'dict']
 
 # Lista de diccionario serializable a JSON
-SerializableDict = list[dict[str, Union[int, float, str, list[int]]]]
+SerializableDict = list[dict[str, Union[int, float, str, bool, list[int]]]]
