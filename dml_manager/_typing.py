@@ -72,6 +72,7 @@ OperatorCallback = Callable[[Mapper, str, TripletValue], BinaryExpression]
 # Formato de salida
 OutputFormat = Literal["dataframe", "dict"]
 
+# Formato de credenciales para uso de base de datos
 class DBCredentials(TypedDict):
     host: str
     port: int
@@ -79,4 +80,8 @@ class DBCredentials(TypedDict):
     user: str
     password: str
 
+# Opciones de salida de datos
 OutputOptions = Literal['dataframe', 'dict']
+
+# Lista de diccionario serializable a JSON
+SerializableDict = list[dict[str, Union[int, float, str, list[int]]]]

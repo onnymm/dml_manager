@@ -29,6 +29,7 @@ from ._typing import (
     TripletStructure,
     TripletValue,
     OperatorCallback,
+    SerializableDict,
 )
 from ._sqlalchemy_base import DeclarativeBaseClass
 from urllib.parse import quote
@@ -115,7 +116,7 @@ class DMLManager():
         self,
         db_credentials: Literal['env'] | DBCredentials | str,
         base: DeclarativeBaseClass,
-        data_output: OutputOptions | None = None,
+        output_format: OutputOptions | None = None,
         unique_identifier_field: str = 'id',
     ) -> None:
 
@@ -130,7 +131,7 @@ class DMLManager():
         self._tables = self._create_table_references(base)
 
         # Configuración de formato de salida por defecto
-        self._default_output = data_output
+        self._default_output = output_format
 
         # Nombre global de campos de ID
         self._id_name = unique_identifier_field
@@ -374,7 +375,7 @@ class DMLManager():
         fields: list[str] = [],
         sortby: str | list[str] = None,
         ascending: bool | list[bool] = True,
-        output_format: OutputOptions = 'dataframe',
+        output_format: OutputOptions | None = None,
     ) -> pd.DataFrame | dict[str, TripletValue]:
         """
         ## Lectura de registros
@@ -445,7 +446,7 @@ class DMLManager():
         data = pd.DataFrame(response.fetchall())
 
         # Retorno en formato de salida configurado
-        return self._build_output(data, table_fields, output_format)
+        return self._build_output(data, table_fields, output_format, 'dataframe')
 
     def get_value(
         self,
@@ -567,7 +568,7 @@ class DMLManager():
         limit: int | None = None,
         sortby: str | list[str] = None,
         ascending: bool | list[bool] = True,
-        output_format: OutputOptions = 'dataframe',
+        output_format: OutputOptions | None = None,
     ) -> pd.DataFrame | dict[str, TripletValue]:
         """
         ## Búsqueda y lectura de registros
@@ -746,7 +747,7 @@ class DMLManager():
         data = pd.DataFrame(response.fetchall())
 
         # Retorno en formato de salida configurado
-        return self._build_output(data, table_fields, output_format)
+        return self._build_output(data, table_fields, output_format, 'dataframe')
 
     def search_count(
         self,
@@ -1136,26 +1137,33 @@ class DMLManager():
         self,
         response: list[dict[str, Any]],
         fields: list[str],
+        specified_output: OutputOptions,
         default_output: OutputOptions | None = None,
     ) -> pd.DataFrame | list[dict[str, Any]]:
-
+        
         # Obtención de los nombres de columna excluyendo el nombre de la tabla
         fields = [ str(i).split(".")[1] for i in fields ]
 
-        # Si el formato de salida por defecto es DataFrame...
+        # Si se especificó una salida para la ejecución actual...
+        if specified_output:
+            if specified_output == 'dataframe':
+                return pd.DataFrame(response, columns= fields)
+            else:
+                return self._to_serializable_dict(response)
+
+        # Si existe un formato por defecto en la instancia...
         if self._default_output:
             if self._default_output == 'dataframe':
                 return pd.DataFrame(response, columns= fields)
             else:
-                return response.to_dict('records')
+                return self._to_serializable_dict(response)
 
-
-        # Si no se especificó formato de salida en la función...
+        # Si no se especificó un formato en ejecución o instancia...
         if default_output == 'dataframe':
             return pd.DataFrame(response, columns= fields)
 
         # Retorno de información en lista de diccionarios
-        return response.to_dict('records')
+        return self._to_serializable_dict(response)
 
     def _id_field(
         self,
@@ -1163,6 +1171,44 @@ class DMLManager():
     ) -> InstrumentedAttribute:
 
         return getattr(table_instance, self._id_name)
+
+    def _to_serializable_dict(self, data: pd.DataFrame) -> SerializableDict:
+        """
+        ## Conversión a diccionario serializable
+        Este método interno convierte un DataFrame en una lista de diccionarios
+        que puede ser convertida a JSON.
+        """
+
+        return (
+            data
+            # Reemplazo de todos los potenciales nulos no serializables
+            .replace({np.nan: None})
+            .pipe(
+                lambda df: (
+                    df
+                    # Transformación de tipos no nativos en cadenas de texto
+                    .astype(
+                        {
+                            col: 'string' for col in (
+                                df
+                                # Obtención de los tipos de dato del DataFrame
+                                .dtypes
+                                # Transformación de tipos de dato de serie
+                                .astype('string')
+                                # Filtro por tipos de dato no serializables
+                                .pipe(
+                                    lambda s: s[s.isin(['object', 'datatime64[ns]'])]
+                                )
+                                # Obtención de los nombres de columnas desde el índice
+                                .index
+                            )
+                        }
+                    )
+                )
+            )
+            # Conversión a lista de diccionarios
+            .to_dict('records')
+        )
 
     @classmethod
     def and_(cls, cs_1: CriteriaStructure, cs_2: CriteriaStructure) -> CriteriaStructure:
