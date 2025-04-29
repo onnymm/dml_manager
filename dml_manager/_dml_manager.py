@@ -1181,11 +1181,11 @@ class DMLManager():
 
         return (
             data
-            # Reemplazo de todos los potenciales nulos no serializables
-            .replace({np.nan: None})
             .pipe(
                 lambda df: (
                     df
+                    # Reemplazo de todos los potenciales nulos no serializables
+                    .replace({np.nan: None})
                     # Transformación de tipos no nativos en cadenas de texto
                     .astype(
                         {
